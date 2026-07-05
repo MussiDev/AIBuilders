@@ -30,3 +30,14 @@ tipo(scope): descripción en imperativo, minúscula, sin punto final
 - Scope opcional pero recomendado cuando el cambio es localizado (ej: `feat(auth)`, `fix(prisma)`).
 - Si hay breaking change, agregar `BREAKING CHANGE:` en el footer del body.
 - Body separado por una línea en blanco, wrap a 72 caracteres.
+- Si el proyecto está en español, los mensajes se escriben en inglés igual.
+
+## Ejemplos
+
+```
+feat: add balance calculation for group members
+fix(auth): prevent double session creation
+docs: update API endpoints in README
+refactor: extract decimal arithmetic to shared util
+test: add coverage for settlement netting
+```
