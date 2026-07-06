@@ -1,0 +1,19 @@
+{
+  "name": "finanzas-compartidas",
+  "version": "0.0.0",
+  "private": true,
+  "packageManager": "pnpm@11.9.0",
+  "engines": {
+    "node": ">=20"
+  },
+  "scripts": {
+    "dev": "pnpm --parallel --filter \"./apps/*\" dev",
+    "build": "pnpm -r build",
+    "test": "pnpm -r test",
+    "db:generate": "pnpm --filter @app/api prisma:generate",
+    "db:migrate": "pnpm --filter @app/api prisma:migrate"
+  },
+  "devDependencies": {
+    "typescript": "^5.7.3"
+  }
+}
