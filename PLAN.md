@@ -41,17 +41,23 @@ Objetivo: base sobre la que se construye todo. Sin lógica de negocio de feature
 - Scripts raíz: `pnpm dev`, `pnpm test`, `pnpm install`.
 - **No incluye:** endpoints de negocio, auth, UI de features, lógica de split/balances (llegan en sus pasos).
 
-### Paso 1 — Auth mínima (RF-01 a 07)
+### Paso 1 — Auth mínima (RF-01 a 07)  ⟵ EN CURSO
 - Registro email/password con hash (RNF-04), login, logout, moneda por defecto (RF-07).
-- RF-06 (recuperación por email) al final, depende de servicio de email externo (§8).
+- RF-06 (recuperación por email) al final, depende de servicio de email externo (§8). **Diferido** (no entra en este slice).
 - TDD: tests de validación de email (RF-02), email duplicado (RF-03), credenciales (RF-04/05).
+- Sesión: **JWT en cookie httpOnly** (SameSite=lax; `secure` en producción). Logout borra la cookie server-side (RF-05/AC-06).
+- Hashing con **bcryptjs** (JS puro, sin build nativo en Windows; RNF-04 admite bcrypt).
+- Base para RNF-06: `JwtAuthGuard` que lee la cookie + endpoint `GET /auth/me` como prueba E2E de la sesión.
+- Hecho: DTOs (`register`/`login`) validados con class-validator, `AuthService`, `AuthController`, `AuthModule`, `ValidationPipe` global + `cookie-parser`. **21 tests API en verde.**
 
-### Paso 2 — F1: Finanzas personales
+### Paso 2 — F1: Finanzas personales  ⟵ EN CURSO
 - CRUD de movimientos (ingreso/egreso: monto, fecha, categoría, nota) — RF-08 a 12.
 - Categorías predefinidas + gestión (RF-14, 15).
 - Cálculo de saldo (RF-13).
 - Validaciones transversales aplicables (RF-41, 42, 43, 45, 46).
 - TDD: tests de cálculo de saldo y validaciones antes de la implementación.
+- Hecho: `MovementsModule` y `CategoriesModule` (service/controller/DTOs), validadores de monto reutilizando `@app/shared` (RF-41/43), decorador `@CurrentUserId` (RNF-06), saldo con decimal exacto (RF-13), paginación (RF-44), siembra de categorías predefinidas en el registro (RF-15). **49 tests API en verde; build tsc limpio.**
+- Pendiente (igual que Paso 1): migración/prueba con DB real y UI web.
 
 ### Paso 3 — F2: Grupos + gasto compartido (partes iguales)
 - Crear grupo con moneda (RF-21), invitación por enlace (RF-22/23/48).
@@ -76,9 +82,9 @@ Cada paso implementa RF concretos con sus AC asociados (ver §5 del PRD). La ver
 
 ## Estado
 
-- [ ] Paso 0 — Fundaciones (en curso)
-- [ ] Paso 1 — Auth
-- [ ] Paso 2 — F1 Finanzas personales
+- [x] Paso 0 — Fundaciones
+- [ ] Paso 1 — Auth (en curso — lógica y tests listos; falta migración/prueba con DB real y UI web)
+- [ ] Paso 2 — F1 Finanzas personales (en curso — lógica y tests listos; falta migración/prueba con DB real y UI web)
 - [ ] Paso 3 — F2 Grupos + gasto compartido
 - [ ] Paso 4 — F3 Integración automática
 - [ ] Paso 5 — Panel inicial
