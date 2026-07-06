@@ -1,0 +1,155 @@
+// Modelo de datos base — Paso 0 (Fundaciones).
+// Reglas transversales:
+//   - RNF-11: todo monto es Decimal(14,2), nunca coma flotante.
+//   - RNF-17: todo monto persiste currency_code ISO 4217; cada grupo tiene una moneda única.
+// La lógica de negocio (split, balances, integración personal↔compartido) llega en los pasos 2-5.
+
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+enum MovementType {
+  INCOME
+  EXPENSE
+}
+
+model User {
+  id              String   @id @default(cuid())
+  email           String   @unique
+  passwordHash    String
+  defaultCurrency String   @db.Char(3) // ISO 4217 (RNF-07, RNF-17)
+  createdAt       DateTime @default(now())
+  updatedAt       DateTime @updatedAt
+
+  categories      Category[]
+  movements       Movement[]
+  memberships     GroupMember[]
+  paidExpenses    SharedExpense[] @relation("ExpensePayer")
+  expenseShares   ExpenseShare[]
+  settlementsFrom Settlement[]    @relation("SettlementFrom")
+  settlementsTo   Settlement[]    @relation("SettlementTo")
+}
+
+model Category {
+  id        String   @id @default(cuid())
+  name      String
+  isDefault Boolean  @default(false) // categorías predefinidas al crear la cuenta (RF-15)
+  createdAt DateTime @default(now())
+
+  userId    String
+  user      User       @relation(fields: [userId], references: [id], onDelete: Cascade)
+  movements Movement[]
+
+  @@unique([userId, name])
+}
+
+model Movement {
+  id           String       @id @default(cuid())
+  type         MovementType
+  amount       Decimal      @db.Decimal(14, 2) // RNF-11
+  currencyCode String       @db.Char(3) // RNF-17
+  date         DateTime
+  note         String? // RF-12
+  createdAt    DateTime     @default(now())
+  updatedAt    DateTime     @updatedAt
+
+  userId     String
+  user       User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  categoryId String
+  category   Category @relation(fields: [categoryId], references: [id])
+
+  // RF-35/36/37: si el movimiento fue autogenerado desde un gasto compartido,
+  // queda enlazado a la parte (share) que lo originó. Uno-a-uno opcional.
+  sourceShareId String?       @unique
+  sourceShare   ExpenseShare? @relation(fields: [sourceShareId], references: [id], onDelete: Cascade)
+
+  @@index([userId, date])
+}
+
+model Group {
+  id           String   @id @default(cuid())
+  name         String
+  currencyCode String   @db.Char(3) // moneda única del grupo (RNF-17)
+  createdAt    DateTime @default(now())
+
+  members     GroupMember[]
+  expenses    SharedExpense[]
+  invitations Invitation[]
+  settlements Settlement[]
+}
+
+model GroupMember {
+  id       String   @id @default(cuid())
+  joinedAt DateTime @default(now())
+
+  groupId String
+  group   Group  @relation(fields: [groupId], references: [id], onDelete: Cascade)
+  userId  String
+  user    User   @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@unique([groupId, userId])
+}
+
+model Invitation {
+  id        String   @id @default(cuid())
+  token     String   @unique
+  expiresAt DateTime // RF-48: invitación puede expirar
+  createdAt DateTime @default(now())
+
+  groupId String
+  group   Group  @relation(fields: [groupId], references: [id], onDelete: Cascade)
+}
+
+model SharedExpense {
+  id           String   @id @default(cuid())
+  amount       Decimal  @db.Decimal(14, 2) // RNF-11
+  currencyCode String   @db.Char(3) // RNF-17 (debe coincidir con la del grupo)
+  date         DateTime
+  version      Int      @default(0) // bloqueo optimista ante edición concurrente (riesgo R6)
+  createdAt    DateTime @default(now())
+  updatedAt    DateTime @updatedAt
+
+  groupId String
+  group   Group  @relation(fields: [groupId], references: [id], onDelete: Cascade)
+  payerId String
+  payer   User   @relation("ExpensePayer", fields: [payerId], references: [id])
+
+  shares ExpenseShare[]
+
+  @@index([groupId, date])
+}
+
+model ExpenseShare {
+  id     String  @id @default(cuid())
+  amount Decimal @db.Decimal(14, 2) // parte que le corresponde al miembro (RNF-11)
+
+  sharedExpenseId String
+  sharedExpense   SharedExpense @relation(fields: [sharedExpenseId], references: [id], onDelete: Cascade)
+  userId          String
+  user            User          @relation(fields: [userId], references: [id])
+
+  // Movimiento personal autogenerado a partir de esta parte (RF-35).
+  personalMovement Movement?
+
+  @@unique([sharedExpenseId, userId])
+}
+
+model Settlement {
+  id           String   @id @default(cuid())
+  amount       Decimal  @db.Decimal(14, 2) // RNF-11
+  currencyCode String   @db.Char(3) // RNF-17
+  date         DateTime
+  createdAt    DateTime @default(now())
+
+  groupId    String
+  group      Group  @relation(fields: [groupId], references: [id], onDelete: Cascade)
+  fromUserId String
+  fromUser   User   @relation("SettlementFrom", fields: [fromUserId], references: [id])
+  toUserId   String
+  toUser     User   @relation("SettlementTo", fields: [toUserId], references: [id])
+}
