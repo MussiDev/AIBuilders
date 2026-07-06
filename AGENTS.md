@@ -17,6 +17,9 @@ pnpm dev         # levantar frontend + backend concurrente
 pnpm test        # correr tests con Vitest
 ```
 
+## Obligatorio
+- Antes de responder, hacéme todas las preguntas que necesites para darme la mejor respuesta posible.
+
 ## Qué NO hacer
 - **Nada de floats para montos.** Usar siempre aritmética decimal exacta (RNF-11). Ni `number`, ni `float`, ni `Double`.
 - **No implementar multi-moneda en el MVP.** El modelo puede preparar `currency_code` para futuro, pero no hay conversión ni lógica multi-moneda ahora.
