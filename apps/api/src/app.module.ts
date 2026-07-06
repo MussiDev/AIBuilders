@@ -4,6 +4,7 @@ import { AppController } from './app.controller';
 import { PrismaModule } from './prisma/prisma.module';
 import { AuthModule } from './auth/auth.module';
 import { CategoriesModule } from './categories/categories.module';
+import { MovementsModule } from './movements/movements.module';
 
 @Module({
   imports: [
@@ -11,6 +12,7 @@ import { CategoriesModule } from './categories/categories.module';
     PrismaModule,
     AuthModule,
     CategoriesModule,
+    MovementsModule,
   ],
   controllers: [AppController],
 })
