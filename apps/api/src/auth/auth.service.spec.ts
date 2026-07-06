@@ -71,6 +71,21 @@ describe('AuthService', () => {
       expect(prisma.user.create.mock.calls[0][0].data.defaultCurrency).toBe('ARS');
     });
 
+    // RF-15 / AC-15: al crear la cuenta se siembran las categorías predefinidas.
+    it('siembra las categorías predefinidas al registrar', async () => {
+      prisma.user.findUnique.mockResolvedValue(null);
+      prisma.user.create.mockImplementation(({ data }: any) =>
+        Promise.resolve({ id: 'u1', ...data }),
+      );
+
+      await service.register(registerInput);
+
+      const seeded = prisma.user.create.mock.calls[0][0].data.categories.create;
+      expect(Array.isArray(seeded)).toBe(true);
+      expect(seeded.length).toBeGreaterThan(0);
+      expect(seeded.every((c: any) => c.isDefault === true)).toBe(true);
+    });
+
     // RNF-04: nunca se expone el hash de la contraseña hacia afuera.
     it('nunca devuelve el hash de la contraseña', async () => {
       prisma.user.findUnique.mockResolvedValue(null);

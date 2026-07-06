@@ -1,6 +1,7 @@
 import { ConflictException, Injectable } from '@nestjs/common';
 import bcrypt from 'bcryptjs';
 import { PrismaService } from '../prisma/prisma.service';
+import { DEFAULT_CATEGORIES } from '../categories/default-categories';
 import { RegisterDto } from './dto/register.dto';
 
 const SALT_ROUNDS = 10;
@@ -27,11 +28,16 @@ export class AuthService {
 
     // RNF-04: la contraseña se persiste hasheada, nunca en texto plano.
     const passwordHash = await bcrypt.hash(dto.password, SALT_ROUNDS);
+    // RF-15: al abrir la cuenta se siembran las categorías predefinidas.
+    // El create anidado es una única operación atómica.
     const user = await this.prisma.user.create({
       data: {
         email: dto.email,
         passwordHash,
         defaultCurrency: dto.defaultCurrency, // RF-07
+        categories: {
+          create: DEFAULT_CATEGORIES.map((name) => ({ name, isDefault: true })),
+        },
       },
     });
 
