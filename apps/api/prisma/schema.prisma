@@ -96,10 +96,11 @@ model GroupMember {
 }
 
 model Invitation {
-  id        String   @id @default(cuid())
-  token     String   @unique
-  expiresAt DateTime // RF-48: invitación puede expirar
-  createdAt DateTime @default(now())
+  id         String    @id @default(cuid())
+  token      String    @unique
+  expiresAt  DateTime // RF-48: invitación puede expirar
+  acceptedAt DateTime? // invitación de un solo uso: se consume al aceptarse
+  createdAt  DateTime  @default(now())
 
   groupId String
   group   Group  @relation(fields: [groupId], references: [id], onDelete: Cascade)
@@ -109,6 +110,7 @@ model SharedExpense {
   id           String   @id @default(cuid())
   amount       Decimal  @db.Decimal(14, 2) // RNF-11
   currencyCode String   @db.Char(3) // RNF-17 (debe coincidir con la del grupo)
+  category     String // RF-24: etiqueta de texto libre del gasto (ej. "Comida")
   date         DateTime
   version      Int      @default(0) // bloqueo optimista ante edición concurrente (riesgo R6)
   createdAt    DateTime @default(now())

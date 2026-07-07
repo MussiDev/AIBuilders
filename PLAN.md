@@ -59,13 +59,16 @@ Objetivo: base sobre la que se construye todo. Sin lógica de negocio de feature
 - Hecho: `MovementsModule` y `CategoriesModule` (service/controller/DTOs), validadores de monto reutilizando `@app/shared` (RF-41/43), decorador `@CurrentUserId` (RNF-06), saldo con decimal exacto (RF-13), paginación (RF-44), siembra de categorías predefinidas en el registro (RF-15). **49 tests API en verde; build tsc limpio.**
 - Pendiente (igual que Paso 1): migración/prueba con DB real y UI web.
 
-### Paso 3 — F2: Grupos + gasto compartido (partes iguales)
+### Paso 3 — F2: Grupos + gasto compartido (partes iguales)  ⟵ EN CURSO
 - Crear grupo con moneda (RF-21), invitación por enlace (RF-22/23/48).
 - Gasto compartido en partes iguales (RF-24/25) con reparto determinístico del centavo residual (mitigación R1).
 - Validación de que las partes suman el total (RF-28).
 - Balance neto por miembro (RF-29). Settlement (RF-31). Editar/borrar/salir (RF-32/33/34).
 - Control de acceso por grupo (RNF-06, AC-47). Bloqueo optimista por versión (R6).
 - TDD: tests de split, de balance neto y de validación de partes antes de implementar (núcleo de RNF-13 ≥ 70%).
+- **Decisiones tomadas:** categoría del gasto compartido como etiqueta de texto libre (campo `category` en `SharedExpense`); invitación de un solo uso con TTL 7 días (campo `acceptedAt` en `Invitation`).
+- Hecho: `splitEqually` en `@app/shared` (reparto del centavo residual a los primeros miembros en orden estable, TDD primero); `GroupsModule` con `GroupsService` (grupos/invitaciones/salir con balance en cero), `SharedExpensesService` (CRUD de gastos + split + bloqueo optimista R6) y `BalanceService` (balance neto RF-29 + settlement RF-31); DTOs validados con class-validator; control de acceso por membresía (RNF-06) en toda operación. **97 tests en verde (17 shared + 80 API); build tsc limpio.**
+- Pendiente (igual que pasos 1-2): migración/prueba con DB real y UI web. Nota: como MVP sólo divide en partes iguales, RF-28 se cubre como invariante (las partes calculadas suman exacto); la división por monto exacto/porcentaje (RF-26/27) es Fase 2.
 
 ### Paso 4 — F3: Integración automática (el diferencial)
 - El gasto compartido genera el egreso personal del usuario por su parte (RF-35), dentro de una **transacción atómica** (mitigación R4).
@@ -85,6 +88,6 @@ Cada paso implementa RF concretos con sus AC asociados (ver §5 del PRD). La ver
 - [x] Paso 0 — Fundaciones
 - [ ] Paso 1 — Auth (en curso — lógica y tests listos; falta migración/prueba con DB real y UI web)
 - [ ] Paso 2 — F1 Finanzas personales (en curso — lógica y tests listos; falta migración/prueba con DB real y UI web)
-- [ ] Paso 3 — F2 Grupos + gasto compartido
+- [ ] Paso 3 — F2 Grupos + gasto compartido (en curso — lógica y tests listos; falta migración/prueba con DB real y UI web)
 - [ ] Paso 4 — F3 Integración automática
 - [ ] Paso 5 — Panel inicial

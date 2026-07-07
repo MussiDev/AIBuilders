@@ -5,6 +5,7 @@ import { PrismaModule } from './prisma/prisma.module';
 import { AuthModule } from './auth/auth.module';
 import { CategoriesModule } from './categories/categories.module';
 import { MovementsModule } from './movements/movements.module';
+import { GroupsModule } from './groups/groups.module';
 
 @Module({
   imports: [
@@ -13,6 +14,7 @@ import { MovementsModule } from './movements/movements.module';
     AuthModule,
     CategoriesModule,
     MovementsModule,
+    GroupsModule,
   ],
   controllers: [AppController],
 })
