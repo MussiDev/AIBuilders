@@ -18,12 +18,35 @@ function createPrismaMock() {
       update: vi.fn(),
       delete: vi.fn(),
     },
-    expenseShare: { deleteMany: vi.fn(), createMany: vi.fn() },
+    expenseShare: { deleteMany: vi.fn() },
+    movement: { create: vi.fn() },
+    category: { upsert: vi.fn() },
     $transaction: vi.fn(),
   } as any;
   // Transacción interactiva: ejecuta el callback con el mismo mock.
   prisma.$transaction.mockImplementation((cb: any) => cb(prisma));
+  // Defaults de la integración personal↔compartido (RF-35).
+  prisma.category.upsert.mockImplementation(({ where }: any) =>
+    Promise.resolve({ id: `cat-${where.userId_name.userId}` }),
+  );
+  prisma.movement.create.mockResolvedValue({ id: 'mv' });
   return prisma as PrismaService & Record<string, any>;
+}
+
+/** Simula lo que devuelve Prisma con `include: { shares: true }`. */
+function expenseWithShares(data: any, extra: any = {}) {
+  const shares = (data.shares.create as any[]).map((s, i) => ({
+    id: `sh${i}`,
+    ...s,
+  }));
+  return {
+    id: 'e1',
+    currencyCode: data.currencyCode ?? 'ARS',
+    category: data.category ?? 'Comida',
+    date: data.date ?? new Date('2026-07-01'),
+    shares,
+    ...extra,
+  };
 }
 
 const A = 'userA';
@@ -64,7 +87,7 @@ describe('SharedExpensesService', () => {
     it('crea el gasto y reparte el total en partes iguales (centavo residual a los primeros)', async () => {
       setupGroup(prisma);
       prisma.sharedExpense.create.mockImplementation(({ data }: any) =>
-        Promise.resolve({ id: 'e1', ...data }),
+        Promise.resolve(expenseWithShares(data)),
       );
 
       await service.create(A, GROUP, baseInput);
@@ -87,6 +110,29 @@ describe('SharedExpensesService', () => {
       expect(sum).toBeCloseTo(1000, 2); // RF-28
     });
 
+    // AC-33 / RF-35: cada miembro recibe un egreso personal por su parte.
+    it('genera un egreso personal por cada parte, enlazado al share (RF-35)', async () => {
+      setupGroup(prisma);
+      prisma.sharedExpense.create.mockImplementation(({ data }: any) =>
+        Promise.resolve(expenseWithShares(data)),
+      );
+
+      await service.create(A, GROUP, baseInput);
+
+      // Un movimiento personal por cada uno de los 3 miembros.
+      expect(prisma.movement.create).toHaveBeenCalledTimes(3);
+      const movements = prisma.movement.create.mock.calls.map((c: any) => c[0].data);
+      for (const mv of movements) {
+        expect(mv.type).toBe('EXPENSE');
+        expect(mv.currencyCode).toBe('ARS'); // moneda del grupo (RNF-17)
+        expect(mv.sourceShareId).toMatch(/^sh\d$/); // enlazado a la parte
+        expect(mv.categoryId).toBe(`cat-${mv.userId}`); // categoría "Gastos compartidos"
+      }
+      const byUser = Object.fromEntries(movements.map((m: any) => [m.userId, m.amount]));
+      expect(byUser[A]).toBe('333.34');
+      expect(byUser[B]).toBe('333.33');
+    });
+
     // AC-23: $1.000 entre 4 miembros → $250 cada uno.
     it('reparte en montos exactos cuando es divisible', async () => {
       prisma.groupMember.findUnique.mockResolvedValue({ userId: A });
@@ -98,7 +144,7 @@ describe('SharedExpensesService', () => {
         { userId: 'userD' },
       ]);
       prisma.sharedExpense.create.mockImplementation(({ data }: any) =>
-        Promise.resolve({ id: 'e1', ...data }),
+        Promise.resolve(expenseWithShares(data)),
       );
 
       await service.create(A, GROUP, {
@@ -144,8 +190,8 @@ describe('SharedExpensesService', () => {
   });
 
   describe('update', () => {
-    // AC-30: editar el monto recalcula las partes con el bloqueo optimista (R6).
-    it('recalcula las partes al editar el monto (version coincide)', async () => {
+    // AC-30 / AC-34: editar el monto recalcula partes Y los egresos personales (RF-36).
+    it('recalcula partes y regenera los egresos personales al editar (RF-36)', async () => {
       setupGroup(prisma);
       prisma.sharedExpense.findUnique.mockResolvedValue({
         id: 'e1',
@@ -154,14 +200,24 @@ describe('SharedExpensesService', () => {
         version: 0,
         shares: [{ userId: A }, { userId: B }],
       });
-      prisma.sharedExpense.update.mockResolvedValue({ id: 'e1', version: 1 });
+      prisma.sharedExpense.update.mockImplementation(({ data }: any) =>
+        Promise.resolve(expenseWithShares(data, { version: 1 })),
+      );
 
       await service.update(A, 'e1', { version: 0, amount: '1200.00' });
 
+      // Se borran las partes viejas (sus movimientos caen por cascada) y se recrean.
       expect(prisma.expenseShare.deleteMany).toHaveBeenCalled();
       const updateArg = prisma.sharedExpense.update.mock.calls[0][0];
       expect(updateArg.data.version).toEqual({ increment: 1 });
       expect(updateArg.data.amount).toBe('1200.00');
+
+      // 1200 / 2 = 600 → los egresos personales regenerados reflejan la nueva parte.
+      expect(prisma.movement.create).toHaveBeenCalledTimes(2);
+      const amounts = prisma.movement.create.mock.calls.map(
+        (c: any) => c[0].data.amount,
+      );
+      expect(amounts).toEqual(['600.00', '600.00']);
     });
 
     // R6: versión desactualizada → conflicto, no se pisa la edición ajena.
@@ -183,7 +239,8 @@ describe('SharedExpensesService', () => {
   });
 
   describe('remove', () => {
-    // AC-31: eliminar el gasto lo saca de la lista (las partes caen en cascada).
+    // AC-31 / RF-37: eliminar el gasto lo saca de la lista; las partes y sus
+    // egresos personales asociados caen en cascada (onDelete: Cascade en el schema).
     it('elimina un gasto del grupo del que el solicitante es miembro', async () => {
       prisma.groupMember.findUnique.mockResolvedValue({ userId: A });
       prisma.sharedExpense.findUnique.mockResolvedValue({

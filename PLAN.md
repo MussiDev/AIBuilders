@@ -70,10 +70,13 @@ Objetivo: base sobre la que se construye todo. Sin lógica de negocio de feature
 - Hecho: `splitEqually` en `@app/shared` (reparto del centavo residual a los primeros miembros en orden estable, TDD primero); `GroupsModule` con `GroupsService` (grupos/invitaciones/salir con balance en cero), `SharedExpensesService` (CRUD de gastos + split + bloqueo optimista R6) y `BalanceService` (balance neto RF-29 + settlement RF-31); DTOs validados con class-validator; control de acceso por membresía (RNF-06) en toda operación. **97 tests en verde (17 shared + 80 API); build tsc limpio.**
 - Pendiente (igual que pasos 1-2): migración/prueba con DB real y UI web. Nota: como MVP sólo divide en partes iguales, RF-28 se cubre como invariante (las partes calculadas suman exacto); la división por monto exacto/porcentaje (RF-26/27) es Fase 2.
 
-### Paso 4 — F3: Integración automática (el diferencial)
+### Paso 4 — F3: Integración automática (el diferencial)  ⟵ EN CURSO
 - El gasto compartido genera el egreso personal del usuario por su parte (RF-35), dentro de una **transacción atómica** (mitigación R4).
 - Actualiza el movimiento personal al editar la parte (RF-36) y lo elimina al borrar el gasto (RF-37).
 - TDD: tests de integración RF-35/36/37 antes de implementar.
+- **Decisión tomada:** el egreso autogenerado usa una categoría dedicada `Gastos compartidos` por usuario, creada on-demand (upsert). Se genera un egreso **por cada miembro** por su parte, con la moneda del grupo (RNF-17).
+- Hecho: `syncPersonalMovements` en `SharedExpensesService` — crea el egreso personal de cada parte enlazado vía `sourceShareId` (RF-35), lo regenera al editar el gasto (RF-36), todo dentro de la misma transacción del gasto (R4). El borrado (RF-37) es automático por cascada del schema (`Movement.sourceShare onDelete: Cascade`). Sin cambios de schema (el Paso 0 ya lo preveía). **81 tests API en verde; build tsc limpio.**
+- Pendiente (igual que pasos previos): prueba con DB real y UI web.
 
 ### Paso 5 — Panel inicial (RF-38)
 - Saldo personal + total adeudado/por cobrar en grupos (AC-36).
@@ -89,5 +92,5 @@ Cada paso implementa RF concretos con sus AC asociados (ver §5 del PRD). La ver
 - [ ] Paso 1 — Auth (en curso — lógica y tests listos; falta migración/prueba con DB real y UI web)
 - [ ] Paso 2 — F1 Finanzas personales (en curso — lógica y tests listos; falta migración/prueba con DB real y UI web)
 - [ ] Paso 3 — F2 Grupos + gasto compartido (en curso — lógica y tests listos; falta migración/prueba con DB real y UI web)
-- [ ] Paso 4 — F3 Integración automática
+- [ ] Paso 4 — F3 Integración automática (en curso — lógica y tests listos; falta prueba con DB real y UI web)
 - [ ] Paso 5 — Panel inicial
