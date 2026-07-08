@@ -70,6 +70,7 @@ export function CategoriesPanel({ categories }: { categories: Category[] }) {
 
 function CategoryRow({ category }: { category: Category }) {
   const [editing, setEditing] = useState(false);
+  const [name, setName] = useState(category.name);
   const [state, formAction, pending] = useActionState(updateCategoryAction, {});
 
   useEffect(() => {
@@ -85,7 +86,8 @@ function CategoryRow({ category }: { category: Category }) {
             <div className="flex-1">
               <Input
                 name="name"
-                defaultValue={state.values?.name ?? category.name}
+                value={name}
+                onChange={(e) => setName(e.target.value)}
                 aria-invalid={!!state.fieldErrors?.name}
               />
             </div>
@@ -96,7 +98,10 @@ function CategoryRow({ category }: { category: Category }) {
               type="button"
               variant="outline"
               size="sm"
-              onClick={() => setEditing(false)}
+              onClick={() => {
+                setEditing(false);
+                setName(category.name);
+              }}
             >
               Cancelar
             </Button>

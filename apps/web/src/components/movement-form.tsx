@@ -1,6 +1,6 @@
 'use client';
 
-import { useActionState, useEffect, useRef } from 'react';
+import { useActionState, useEffect, useRef, useState } from 'react';
 import {
   createMovementAction,
   updateMovementAction,
@@ -38,13 +38,19 @@ export function MovementForm({
     {},
   );
   const formRef = useRef<HTMLFormElement>(null);
+  const [amount, setAmount] = useState(movement?.amount ?? '');
+  const [date, setDate] = useState(movement?.date.slice(0, 10) ?? today);
 
   useEffect(() => {
     if (state.ok) {
-      if (mode === 'create') formRef.current?.reset();
+      if (mode === 'create') {
+        formRef.current?.reset();
+        setAmount('');
+        setDate(today);
+      }
       onSuccess?.();
     }
-  }, [state.ok, mode, onSuccess]);
+  }, [state.ok, mode, onSuccess, today]);
 
   const v = state.values;
 
@@ -74,7 +80,8 @@ export function MovementForm({
             name="amount"
             inputMode="decimal"
             placeholder="0.00"
-            defaultValue={v?.amount ?? movement?.amount ?? ''}
+            value={amount}
+            onChange={(e) => setAmount(e.target.value)}
             aria-invalid={!!state.fieldErrors?.amount}
           />
           <FieldError messages={state.fieldErrors?.amount} />
@@ -86,7 +93,8 @@ export function MovementForm({
             id={`date-${movement?.id ?? 'new'}`}
             name="date"
             type="date"
-            defaultValue={v?.date ?? movement?.date.slice(0, 10) ?? today}
+            value={date}
+            onChange={(e) => setDate(e.target.value)}
             aria-invalid={!!state.fieldErrors?.date}
           />
           <FieldError messages={state.fieldErrors?.date} />

@@ -223,9 +223,13 @@ function InviteButton({ groupId }: { groupId: string }) {
 function SettlementForm({ group }: { group: GroupDetail }) {
   const [state, formAction, pending] = useActionState(createSettlementAction, {});
   const formRef = useRef<HTMLFormElement>(null);
+  const [amount, setAmount] = useState('');
 
   useEffect(() => {
-    if (state.ok) formRef.current?.reset();
+    if (state.ok) {
+      formRef.current?.reset();
+      setAmount('');
+    }
   }, [state.ok]);
 
   return (
@@ -282,7 +286,8 @@ function SettlementForm({ group }: { group: GroupDetail }) {
                 name="amount"
                 inputMode="decimal"
                 placeholder="0.00"
-                defaultValue={state.values?.amount ?? ''}
+                value={amount}
+                onChange={(e) => setAmount(e.target.value)}
                 aria-invalid={!!state.fieldErrors?.amount}
               />
               <FieldError messages={state.fieldErrors?.amount} />

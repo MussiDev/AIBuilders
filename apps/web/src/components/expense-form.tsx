@@ -1,6 +1,6 @@
 'use client';
 
-import { useActionState, useEffect, useRef } from 'react';
+import { useActionState, useEffect, useRef, useState } from 'react';
 import {
   createExpenseAction,
   updateExpenseAction,
@@ -37,13 +37,21 @@ export function ExpenseForm({
   const action = mode === 'create' ? createExpenseAction : updateExpenseAction;
   const [state, formAction, pending] = useActionState(action, {});
   const formRef = useRef<HTMLFormElement>(null);
+  const [amount, setAmount] = useState(expense?.amount ?? '');
+  const [date, setDate] = useState(expense?.date.slice(0, 10) ?? today);
+  const [category, setCategory] = useState(expense?.category ?? '');
 
   useEffect(() => {
     if (state.ok) {
-      if (mode === 'create') formRef.current?.reset();
+      if (mode === 'create') {
+        formRef.current?.reset();
+        setAmount('');
+        setDate(today);
+        setCategory('');
+      }
       onSuccess?.();
     }
-  }, [state.ok, mode, onSuccess]);
+  }, [state.ok, mode, onSuccess, today]);
 
   const suffix = expense?.id ?? 'new';
   const includedByDefault = new Set(
@@ -70,7 +78,8 @@ export function ExpenseForm({
             name="amount"
             inputMode="decimal"
             placeholder="0.00"
-            defaultValue={state.values?.amount ?? expense?.amount ?? ''}
+            value={amount}
+            onChange={(e) => setAmount(e.target.value)}
             aria-invalid={!!state.fieldErrors?.amount}
           />
           <FieldError messages={state.fieldErrors?.amount} />
@@ -102,7 +111,8 @@ export function ExpenseForm({
             id={`date-${suffix}`}
             name="date"
             type="date"
-            defaultValue={state.values?.date ?? expense?.date.slice(0, 10) ?? today}
+            value={date}
+            onChange={(e) => setDate(e.target.value)}
             aria-invalid={!!state.fieldErrors?.date}
           />
           <FieldError messages={state.fieldErrors?.date} />
@@ -115,7 +125,8 @@ export function ExpenseForm({
             name="category"
             placeholder="Comida"
             maxLength={60}
-            defaultValue={state.values?.category ?? expense?.category ?? ''}
+            value={category}
+            onChange={(e) => setCategory(e.target.value)}
             aria-invalid={!!state.fieldErrors?.category}
           />
           <FieldError messages={state.fieldErrors?.category} />

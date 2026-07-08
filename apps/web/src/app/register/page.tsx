@@ -1,6 +1,6 @@
 'use client';
 
-import { useActionState } from 'react';
+import { useActionState, useState } from 'react';
 import Link from 'next/link';
 import { registerAction } from '@/app/auth-actions';
 import { FieldError } from '@/components/field-error';
@@ -24,6 +24,8 @@ export default function RegisterPage() {
     registerAction,
     initialState,
   );
+  const [email, setEmail] = useState('');
+  const [defaultCurrency, setDefaultCurrency] = useState('ARS');
 
   return (
     <main className="flex min-h-svh items-center justify-center p-6">
@@ -42,7 +44,8 @@ export default function RegisterPage() {
                 id="email"
                 name="email"
                 type="email"
-                defaultValue={state.values?.email}
+                value={email}
+                onChange={(e) => setEmail(e.target.value)}
                 autoComplete="email"
                 aria-invalid={!!state.fieldErrors?.email}
               />
@@ -66,7 +69,8 @@ export default function RegisterPage() {
                 name="defaultCurrency"
                 placeholder="ARS"
                 maxLength={3}
-                defaultValue={state.values?.defaultCurrency ?? 'ARS'}
+                value={defaultCurrency}
+                onChange={(e) => setDefaultCurrency(e.target.value)}
                 aria-invalid={!!state.fieldErrors?.defaultCurrency}
               />
               <FieldError messages={state.fieldErrors?.defaultCurrency} />

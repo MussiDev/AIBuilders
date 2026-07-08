@@ -1,6 +1,6 @@
 'use client';
 
-import { useActionState } from 'react';
+import { useActionState, useState } from 'react';
 import Link from 'next/link';
 import { loginAction } from '@/app/auth-actions';
 import { FieldError } from '@/components/field-error';
@@ -21,6 +21,7 @@ const initialState: FormState = {};
 
 export default function LoginPage() {
   const [state, formAction, pending] = useActionState(loginAction, initialState);
+  const [email, setEmail] = useState('');
 
   return (
     <main className="flex min-h-svh items-center justify-center p-6">
@@ -37,7 +38,8 @@ export default function LoginPage() {
                 id="email"
                 name="email"
                 type="email"
-                defaultValue={state.values?.email}
+                value={email}
+                onChange={(e) => setEmail(e.target.value)}
                 autoComplete="email"
                 aria-invalid={!!state.fieldErrors?.email}
               />
