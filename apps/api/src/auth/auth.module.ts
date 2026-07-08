@@ -18,6 +18,8 @@ import { JwtAuthGuard } from './jwt-auth.guard';
   ],
   controllers: [AuthController],
   providers: [AuthService, JwtAuthGuard],
-  exports: [AuthService, JwtAuthGuard],
+  // Se exporta JwtModule para que JwtService quede disponible al instanciar
+  // JwtAuthGuard en los módulos que lo reusan vía @UseGuards (RNF-06).
+  exports: [AuthService, JwtAuthGuard, JwtModule],
 })
 export class AuthModule {}

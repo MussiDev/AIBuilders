@@ -1,0 +1,24 @@
+# Postgres para desarrollo local. Las credenciales coinciden con apps/api/.env.
+# Uso: docker compose up -d db
+services:
+  db:
+    image: postgres:16-alpine
+    container_name: finanzas-db
+    restart: unless-stopped
+    environment:
+      POSTGRES_USER: usuario
+      POSTGRES_PASSWORD: password
+      POSTGRES_DB: currency-manager
+    # Host 5435: 5432 lo ocupa el PostgreSQL local y 5433/5434 otros contenedores.
+    ports:
+      - '5435:5432'
+    volumes:
+      - finanzas-pgdata:/var/lib/postgresql/data
+    healthcheck:
+      test: ['CMD-SHELL', 'pg_isready -U usuario -d currency-manager']
+      interval: 5s
+      timeout: 5s
+      retries: 10
+
+volumes:
+  finanzas-pgdata:

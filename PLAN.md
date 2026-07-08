@@ -78,9 +78,15 @@ Objetivo: base sobre la que se construye todo. Sin lógica de negocio de feature
 - Hecho: `syncPersonalMovements` en `SharedExpensesService` — crea el egreso personal de cada parte enlazado vía `sourceShareId` (RF-35), lo regenera al editar el gasto (RF-36), todo dentro de la misma transacción del gasto (R4). El borrado (RF-37) es automático por cascada del schema (`Movement.sourceShare onDelete: Cascade`). Sin cambios de schema (el Paso 0 ya lo preveía). **81 tests API en verde; build tsc limpio.**
 - Pendiente (igual que pasos previos): prueba con DB real y UI web.
 
-### Paso 5 — Panel inicial (RF-38)
+### Paso 5 — Panel inicial (RF-38)  ⟵ HECHO (verificado end-to-end)
 - Saldo personal + total adeudado/por cobrar en grupos (AC-36).
 - Cierra el loop visible del diferencial.
+- **Alcance ampliado (decisión del usuario): slice vertical completo** — se cerró la deuda de DB real + UI web, no solo el endpoint.
+- Backend: `DashboardService`/`DashboardController` (`GET /dashboard`) que compone el saldo personal (RF-13) con el total adeudado/por cobrar sumando el balance neto de cada grupo del usuario. TDD, 84 tests API en verde.
+- Infra: **PostgreSQL real** vía Docker (`docker-compose.yml`, contenedor `finanzas-db` en el puerto host 5435 para no chocar con el Postgres local ni otros contenedores). Primera **migración Prisma** aplicada (`init`): base `currency-manager` + todas las tablas.
+- Web (`apps/web`): **shadcn/ui + Tailwind** (pivote desde CSS Modules). Patrón **BFF**: el navegador solo habla con Next; los **Server Actions** (login/register/logout, validados con **Zod**, `useActionState`/`useTransition`) llaman a la API server-to-server y setean la cookie de sesión en el origin de la app; el panel es un server component que reenvía la cookie a la API. Páginas: `/login`, `/register`, `/` (panel).
+- **Bug encontrado y corregido al bootstrapear:** `AuthModule` no exportaba `JwtModule`, así que `JwtService` no estaba disponible al instanciar `JwtAuthGuard` en los módulos que lo reusan (`Categories`/`Movements`/`Groups`/`Dashboard`). Latente desde el Paso 1 porque los tests unitarios nunca levantaron el grafo de módulos. Fix: exportar `JwtModule` desde `AuthModule`.
+- **Verificación end-to-end:** registro → `/auth/me` → `/dashboard` (200 contra DB real); web: `/` sin sesión → 307 a `/login`, `/` con cookie válida → 200 renderizando el panel con datos reales.
 
 ## Trazabilidad
 
@@ -88,9 +94,11 @@ Cada paso implementa RF concretos con sus AC asociados (ver §5 del PRD). La ver
 
 ## Estado
 
+Nota: la **DB real** (Postgres en Docker) y la **primera migración** ya están hechas — aplican a todos los pasos. La UI web construida hasta ahora es auth (`/login`, `/register`) + panel (`/`); las pantallas de las features (movimientos personales del Paso 2, grupos/gastos del Paso 3/4) siguen siendo backend-only.
+
 - [x] Paso 0 — Fundaciones
-- [ ] Paso 1 — Auth (en curso — lógica y tests listos; falta migración/prueba con DB real y UI web)
-- [ ] Paso 2 — F1 Finanzas personales (en curso — lógica y tests listos; falta migración/prueba con DB real y UI web)
-- [ ] Paso 3 — F2 Grupos + gasto compartido (en curso — lógica y tests listos; falta migración/prueba con DB real y UI web)
-- [ ] Paso 4 — F3 Integración automática (en curso — lógica y tests listos; falta prueba con DB real y UI web)
-- [ ] Paso 5 — Panel inicial
+- [x] Paso 1 — Auth (backend + tests + UI login/registro + DB real; verificado e2e)
+- [~] Paso 2 — F1 Finanzas personales (backend + tests + DB real; **falta UI** de movimientos/categorías/saldo)
+- [~] Paso 3 — F2 Grupos + gasto compartido (backend + tests + DB real; **falta UI** de grupos/gastos/balance)
+- [~] Paso 4 — F3 Integración automática (backend + tests + DB real; se ejercita al usar la UI de gastos, aún pendiente)
+- [x] Paso 5 — Panel inicial (backend + UI + DB real; verificado e2e)
