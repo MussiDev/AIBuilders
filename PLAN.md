@@ -94,11 +94,13 @@ Cada paso implementa RF concretos con sus AC asociados (ver §5 del PRD). La ver
 
 ## Estado
 
-Nota: la **DB real** (Postgres en Docker) y la **primera migración** ya están hechas — aplican a todos los pasos. La UI web construida hasta ahora es auth (`/login`, `/register`) + panel (`/`); las pantallas de las features (movimientos personales del Paso 2, grupos/gastos del Paso 3/4) siguen siendo backend-only.
+Nota: la **DB real** (Postgres en Docker) y la **primera migración** ya están hechas — aplican a todos los pasos. La UI web cubre ahora todas las features: auth (`/login`, `/register`), panel (`/`), finanzas personales (`/movements`), grupos (`/groups`, `/groups/[id]`) y aceptación de invitaciones (`/invitations/[token]`).
+
+Ajuste transversal: `GET /groups/:id` ahora incluye el email de cada miembro (`members[].user.email`) para que la UI identifique personas; el balance sólo expone `userId`. Nunca se expone el hash de contraseña (RNF-04). 84 tests API en verde tras el cambio.
 
 - [x] Paso 0 — Fundaciones
 - [x] Paso 1 — Auth (backend + tests + UI login/registro + DB real; verificado e2e)
-- [~] Paso 2 — F1 Finanzas personales (backend + tests + DB real; **falta UI** de movimientos/categorías/saldo)
-- [~] Paso 3 — F2 Grupos + gasto compartido (backend + tests + DB real; **falta UI** de grupos/gastos/balance)
-- [~] Paso 4 — F3 Integración automática (backend + tests + DB real; se ejercita al usar la UI de gastos, aún pendiente)
+- [x] Paso 2 — F1 Finanzas personales (backend + tests + DB real + **UI** `/movements`: saldo, alta/edición/borrado de movimientos y gestión de categorías; verificado e2e)
+- [x] Paso 3 — F2 Grupos + gasto compartido (backend + tests + DB real + **UI** `/groups` y `/groups/[id]`: crear grupo, invitar por enlace, gastos CRUD, balances, settlement, salir; verificado e2e)
+- [x] Paso 4 — F3 Integración automática (backend + tests + DB real; ejercitado desde la UI de gastos — el egreso personal autogenerado aparece en `/movements` marcado como "Automático" y no es editable/borrable directamente)
 - [x] Paso 5 — Panel inicial (backend + UI + DB real; verificado e2e)

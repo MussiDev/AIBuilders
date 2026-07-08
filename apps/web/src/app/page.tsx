@@ -1,7 +1,7 @@
 import { redirect } from 'next/navigation';
 import { getDashboard, getMe, UnauthorizedError } from '@/lib/api.server';
 import { formatMoney } from '@/lib/format';
-import { LogoutButton } from '@/components/logout-button';
+import { AppNav } from '@/components/app-nav';
 import {
   Card,
   CardDescription,
@@ -46,13 +46,8 @@ export default async function DashboardPage() {
 
   return (
     <main className="mx-auto max-w-3xl p-6">
-      <header className="mb-8 flex items-center justify-between gap-4">
-        <div>
-          <h1 className="text-2xl font-bold">Panel</h1>
-          <p className="text-sm text-muted-foreground">{me.email}</p>
-        </div>
-        <LogoutButton />
-      </header>
+      <AppNav email={me.email} />
+      <h1 className="mb-6 text-2xl font-bold">Panel</h1>
 
       <section className="grid gap-4 sm:grid-cols-3">
         {cards.map((card) => (

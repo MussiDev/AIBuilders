@@ -50,7 +50,14 @@ export class GroupsService {
     await this.assertMember(userId, groupId);
     const group = await this.prisma.group.findUnique({
       where: { id: groupId },
-      include: { members: true },
+      // Se incluye el email de cada miembro para que la UI pueda identificar a
+      // las personas (el balance sólo expone userId); nunca el hash (RNF-04).
+      include: {
+        members: {
+          include: { user: { select: { id: true, email: true } } },
+          orderBy: { joinedAt: 'asc' },
+        },
+      },
     });
     if (!group) {
       throw new NotFoundException('Grupo no encontrado');
