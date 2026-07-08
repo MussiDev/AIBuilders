@@ -1,1 +1,1 @@
-Instructions from: AGENTS.md
+@AGENTS.md
